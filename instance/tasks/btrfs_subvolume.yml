@@ -1,0 +1,72 @@
+---
+# Ansible include
+#
+# Configure and check initial btrfs subvolume for backups
+
+# handle subvolume for instance
+- block:
+  - name: Create superior btrfs subvolume for backup instance
+    command: >-
+      btrfs subvolume create '{{ backup_root }}'
+    args:
+      creates: '{{ backup_root }}'
+
+  - name: Check superior btrfs subvolume for backup instance
+    command: >-
+      btrfs subvolume show '{{ backup_root }}'
+    changed_when: false
+
+
+# handle subvolume for snapshots
+- block:
+  - name: Create latest backup subvolume
+    command: >-
+      btrfs subvolume create '{{ backup_root }}/latest'
+    args:
+      creates: '{{ backup_root }}/latest'
+
+  - name: Check latest backup subvolume
+    command: >-
+      btrfs subvolume show '{{ backup_root }}/latest'
+    changed_when: false
+
+
+- block:
+  - name: Set hourly initial link name
+    set_fact:
+      link_name: 'hourly.0'
+    when:
+      - backup_target.snapshots.hourly != 0
+
+  - name: Set daily initial link name
+    set_fact:
+      link_name: 'daily.0'
+    when:
+      - backup_target.snapshots.hourly == 0
+      - backup_target.snapshots.daily != 0
+
+  - name: Set weekly initial link name
+    set_fact:
+      link_name: 'weekly.0'
+    when:
+      - backup_target.snapshots.hourly == 0
+      - backup_target.snapshots.daily == 0
+      - backup_target.snapshots.weekly != 0
+
+  - name: Set monthly initial link name
+    set_fact:
+      link_name: 'monthly.0'
+    when:
+      - backup_target.snapshots.hourly == 0
+      - backup_target.snapshots.daily == 0
+      - backup_target.snapshots.weekly == 0
+      - backup_target.snapshots.monthly != 0
+
+  - name: Create initial backup link
+    file:
+      path: '{{ backup_root }}/{{ link_name }}'
+      state: link
+      src: 'latest'
+    when: not ansible_check_mode
+
+...

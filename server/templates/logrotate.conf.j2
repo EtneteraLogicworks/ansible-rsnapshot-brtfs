@@ -1,0 +1,12 @@
+## logrotate.conf
+#
+
+{{ rsnapshot_log_dir }}/*.log {
+    copytruncate
+    weekly
+    rotate 26
+    compress
+    delaycompress
+    missingok
+    create 640 root root
+}

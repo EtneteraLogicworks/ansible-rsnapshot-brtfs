@@ -1,0 +1,27 @@
+---
+# Ansible vars
+#
+# Default parameters for rsnapshot_btrfs/instance role
+
+backup_target:
+  remote_rsync: 'sudo /usr/bin/rsync'
+  snapshots:
+    hourly: 24
+    daily: 7
+    weekly: 4
+    monthly: 2
+  files:
+    - '/boot'
+    - '/etc'
+    - '/var'
+    - '/opt'
+  exclude:
+    - '/var/cache'
+    - '/var/lib'
+    - '/var/lib/mysql'
+    - '/var/lib/postgresql'
+    - '/var/run'
+    - '/var/swap'
+    - '/var/tmp'
+
+...

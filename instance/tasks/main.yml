@@ -1,0 +1,80 @@
+---
+# Ansible role
+#
+# Configure rsnapshot btrfs backup instance
+
+- set_fact:
+    backup_root: '{{ hostvars[backup_server].rsnapshot_backup_dir }}/{{ backup_target.name }}'
+    backup_config: '{{ rsnapshot_conf_dir }}/{{ backup_target.name }}.conf'
+  tags:
+    - always
+
+
+- name: Create btrfs subvolume for backups
+  import_tasks: 'btrfs_subvolume.yml'
+  tags:
+    - btrfs
+    - btrfs-subvolume
+
+
+- name: Config file for backup instance
+  template:
+    src: 'rsnapshot_btrfs.conf.j2'
+    dest: '{{ backup_config }}'
+    owner: 'root'
+    group: 'root'
+    mode: '0644'
+  tags:
+    - config
+
+
+- block:
+  - name: Configure systemd service
+    template:
+      src: 'rsnapshot.service.j2'
+      dest: '/etc/systemd/system/rsnapshot-{{ backup_target.name }}@.service'
+      owner: 'root'
+      group: 'root'
+      mode: '0644'
+    notify: Reload systemd
+    tags:
+      - service
+
+  - name: Configure systemd timers
+    template:
+      src: 'rsnapshot.timer.j2'
+      dest: '/etc/systemd/system/rsnapshot-{{ backup_target.name }}@{{ item.key }}.timer'
+      owner: 'root'
+      group: 'root'
+      mode: '0644'
+    notify: Restart timers
+    loop: '{{ backup_target.snapshots|dict2items }}'
+    tags:
+      - timer
+
+  - name: Enable systemd timers
+    systemd:
+      name: 'rsnapshot-{{ backup_target.name }}@{{ item.key }}.timer'
+      daemon_reload: yes
+      state: started
+      enabled: yes
+    when: item.value != 0
+    loop: '{{ backup_target.snapshots|dict2items }}'
+    tags:
+      - timer
+
+  - name: Disable systemd timers
+    systemd:
+      name: 'rsnapshot-{{ backup_target.name }}@{{ item.key }}.timer'
+      daemon_reload: yes
+      state: stopped
+      enabled: no
+    when: item.value == 0
+    loop: '{{ backup_target.snapshots|dict2items }}'
+    tags:
+      - timer
+
+  tags:
+    - systemd
+
+...

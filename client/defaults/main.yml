@@ -1,0 +1,15 @@
+---
+# Ansible vars
+#
+# Default parameters for rsnapshot_btrfs/client role
+
+backup_home_dir: '/var/lib/{{ backup_target.user }}'
+
+backup_target:
+  name: '{{ inventory_hostname_short }}'
+  hostname: '{{ inventory_hostname }}'
+  user: 'sshbackup'
+  groups:
+    - 'ssh'
+
+...

@@ -1,0 +1,5 @@
+## sudoers
+#
+# sudo permission for backup user
+
+{{ backup_target.user }} ALL=(ALL:ALL) NOPASSWD:/usr/bin/rsync

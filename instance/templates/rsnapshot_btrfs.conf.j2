@@ -1,0 +1,48 @@
+## rsnapshot.conf
+#
+# rsnapshot configuration file for {{ backup_target.name }}
+
+config_version	1.2
+
+snapshot_root	{{ backup_root }}
+no_create_root	1
+
+# External programs
+cmd_cp	/opt/scripts/rsnapshot_btrfs_cp-al.sh
+cmd_rm	/opt/scripts/rsnapshot_btrfs_rm-rf.sh
+cmd_rsync	/usr/bin/rsync
+cmd_ssh	/usr/bin/ssh
+cmd_logger	/usr/bin/logger
+
+# Global options
+verbose	3
+loglevel	4
+logfile	{{ rsnapshot_log_dir }}/{{ backup_target.name }}.log
+lockfile	/var/run/rsnapshot-{{ backup_target.name }}.pid
+
+# Backup levels
+{% for snapshot, value in backup_target.snapshots.items() %}
+{%   if value != 0 %}
+retain	{{ snapshot }}	{{ value }}
+{%   endif %}
+{% endfor %}
+
+{% if backup_target.ssh_args is defined %}
+# Extra ssh args
+ssh_args	{{ backup_target.ssh_args }}
+{% endif %}
+
+# Extra rsync args
+# rsnapshot default + rsync_path
+rsync_long_args	--delete --numeric-ids --relative --delete-excluded --rsync-path="{{ backup_target.remote_rsync }}"
+
+
+# Exclude directories
+{% for path in backup_target.exclude %}
+exclude	{{ path }}
+{% endfor %}
+
+# Backup points
+{% for path in backup_target.files %}
+backup	{{ backup_target.user }}@{{ backup_target.hostname }}:{{ path }}	.
+{% endfor %}

@@ -1,0 +1,10 @@
+---
+# Ansible vars
+#
+# Variables for rsnapshot_btrfs/client role
+
+rsnapshot_client_packages:
+  - rsync
+  - openssh-server
+
+...

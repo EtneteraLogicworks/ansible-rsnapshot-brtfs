@@ -1,0 +1,11 @@
+---
+# Ansible vars
+#
+# Variables for rsnapshot_btrfs/server role
+
+rsnapshot_server_packages:
+  - rsnapshot
+  - btrfs-progs
+  - bc
+
+...

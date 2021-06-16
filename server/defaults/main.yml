@@ -1,0 +1,12 @@
+---
+# Ansible vars
+#
+# Default variables for rsnapshot_btrfs/server role
+
+rsnapshot_unmanaged_backups: []
+
+rsnapshot_statistics_from: '{{ admin_mail }}'
+rsnapshot_statistics_to:
+  - '{{ admin_mail }}'
+
+...

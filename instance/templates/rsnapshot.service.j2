@@ -1,0 +1,12 @@
+## rsnapshot.service
+#
+# systemd service for rsnapshot used by systemd timer
+
+[Unit]
+Description=Create %i backup for {{ backup_target.name }}
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/rsnapshot -c '{{ backup_config }}' '%i'
+User=root
+Group=root

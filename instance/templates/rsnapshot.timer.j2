@@ -1,0 +1,26 @@
+## rsnapshot.timer
+#
+# systemd timer to run rsnapshot service periodically
+
+[Unit]
+Description=Run {{ item.key }} {{ backup_target.name }} backups
+
+[Timer]
+{% if item.key == 'hourly' %}
+OnCalendar=*-*-* *:00:00
+RandomizedDelaySec=35min
+{% elif item.key == 'daily' %}
+OnCalendar=*-*-* 00:45:00
+RandomizedDelaySec=10min
+{% elif item.key == 'weekly' %}
+OnCalendar=Sat *-*-* 03:45:00
+RandomizedDelaySec=10min
+Persistent=true
+{% elif item.key == 'monthly' %}
+OnCalendar=Fri *-*-07..13 03:45:00
+RandomizedDelaySec=10min
+Persistent=true
+{% endif %}
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,9 @@
+---
+# Ansible vars
+#
+# Common and default variables for rsnapshot_btrfs roles
+
+rsnapshot_conf_dir: '/etc/rsnapshot.d'
+rsnapshot_log_dir: '/var/log/rsnapshot'
+
+...

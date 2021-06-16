@@ -1,0 +1,17 @@
+---
+# Ansible handlers
+#
+
+- name: Reload systemd
+  systemd:
+    daemon_reload: yes
+
+- name: Restart timers
+  systemd:
+    name: 'rsnapshot-{{ backup_target.name }}@{{ item.key }}.timer'
+    daemon_reload: yes
+    state: restarted
+  when: item.value != 0
+  loop: '{{ backup_target.snapshots|dict2items }}'
+
+...

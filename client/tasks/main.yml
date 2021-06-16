@@ -1,0 +1,92 @@
+---
+# Ansible role
+#
+# Configure rsnapshot backup from a rsnapshot_btrfs server
+
+- name: Include common variables
+  include_vars: 'roles/rsnapshot_btrfs/common/vars.yml'
+  tags:
+    - always
+
+
+- name: Install required packages
+  apt:
+    name: '{{ rsnapshot_client_packages }}'
+    state: present
+  when: ansible_facts['os_family'] == 'Debian'
+  tags:
+    - apt
+
+
+- block:
+  - name: Create backup group
+    group:
+      name: '{{ backup_target.user }}'
+      state: present
+
+  - name: Create backup user
+    user:
+      name: '{{ backup_target.user }}'
+      group: '{{ backup_target.user }}'
+      groups: '{{ backup_target.groups }}'
+      append: true
+      comment: 'ssh user for remote backups'
+      home: '{{ backup_home_dir }}'
+      shell: '/bin/sh'
+      state: present
+
+  - name: sudo permission for backup user
+    template:
+      src: 'sudoers.j2'
+      dest: '/etc/sudoers.d/rsnapshot_client'
+      owner: 'root'
+      group: '{{ "wheel" if ansible_facts["os_family"] == "Darwin" else "root" }}'
+      mode: '0400'
+      validate: 'visudo -cf %s'
+
+  tags:
+    - user
+
+
+- block:
+  - name: Get ssh key from backup server
+    command: >-
+      cat /root/.ssh/id_ed25519.pub
+    delegate_to: '{{ backup_server }}'
+    register: ssh_key
+    check_mode: false
+    changed_when: false
+    failed_when: ssh_key is failed or ssh_key.stdout is undefined or ssh_key.stdout == ""
+
+  - name: Allow ssh login from backup server
+    authorized_key:
+      user: '{{ backup_target.user }}'
+      key: '{{ ssh_key.stdout }}'
+
+  - name: Get ssh server keys
+    shell: >-
+      cat /etc/ssh/ssh_host_*_key.pub
+    register: pub_keys
+    check_mode: false
+    changed_when: false
+
+  - name: Add ssh server to known_hosts
+    known_hosts:
+      path: '/etc/ssh/ssh_known_hosts'
+      name: '{{ backup_target.hostname }}'
+      key: '{{ backup_target.hostname }} {{ item }}'
+      state: present
+    delegate_to: '{{ backup_server }}'
+    loop: '{{ pub_keys.stdout_lines }}'
+  tags:
+    - ssh_fingerprints
+
+
+- name: Configure backup instance on backup server
+  import_role:
+    name: rsnapshot_btrfs/instance
+  delegate_to: '{{ backup_server }}'
+  tags:
+    - instance
+
+...

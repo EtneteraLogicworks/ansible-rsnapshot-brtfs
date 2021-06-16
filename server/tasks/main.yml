@@ -1,0 +1,87 @@
+---
+# Ansible role
+#
+# Prepare host for rsnapshot backups with btrfs snapshots
+
+- name: Include common variables
+  include_vars: 'roles/rsnapshot_btrfs/common/vars.yml'
+  tags:
+    - always
+
+
+- name: Install required packages
+  apt:
+    name: '{{ rsnapshot_server_packages }}'
+    state: present
+  tags:
+    - apt
+
+
+- name: Generate ssh key for backup user
+  user:
+    name: 'root'
+    generate_ssh_key: yes
+    ssh_key_type: 'ed25519'
+    ssh_key_file: '.ssh/id_ed25519'
+  tags:
+    - ssh_fingerprints
+
+
+- name: Create desired directories
+  file:
+    path: '{{ item.path }}'
+    state: directory
+    owner: 'root'
+    group: 'root'
+    mode: '{{ item.mode|default("0755") }}'
+  loop:
+    - path: '{{ rsnapshot_backup_dir }}'
+      mode: '0750'
+    - path: '{{ rsnapshot_log_dir }}'
+      mode: '0750'
+    - path: '{{ rsnapshot_conf_dir }}'
+    - path: '/opt/scripts'
+
+- name: Check backup root is on btrfs filesystem
+  command: >-
+    findmnt --type btrfs --target '{{ rsnapshot_backup_dir }}'
+  changed_when: false
+
+
+- name: Configure logrotate
+  template:
+    src: 'logrotate.conf.j2'
+    dest: '/etc/logrotate.d/rsnapshot'
+    owner: 'root'
+    group: 'root'
+    mode: '0644'
+
+
+- name: Deploy btrfs rsnapshot scripts
+  copy:
+    src: '{{ item }}'
+    dest: '/opt/scripts/{{ item }}'
+    owner: 'root'
+    group: 'root'
+    mode: '0755'
+  loop:
+    - 'rsnapshot_btrfs_cp-al.sh'
+    - 'rsnapshot_btrfs_rm-rf.sh'
+
+
+- name: btrfs snapshots statistics
+  import_tasks: 'statistics.yml'
+  tags:
+    - statistics
+
+
+- name: Configure backup of unmanaged hosts
+  include_role:
+    name: rsnapshot_btrfs/instance
+  loop: '{{ rsnapshot_unmanaged_backups }}'
+  loop_control:
+    loop_var: 'backup_target'
+  tags:
+    - instance
+
+...
